@@ -103,7 +103,7 @@ GrainTCPV1 是一个部署在 Cloudflare 上的代理节点管理系统，提供
 
 **Snippets 版：**
 
-<img width="1920" alt="Snippets登录页" src="./issue/snippets展示/snippets登录页.png" />
+<img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/288f586d-8f37-4785-a4dc-58153bb5dfa2" />
 <img width="1920" alt="Snippets管理页面" src="./issue/snippets展示/snippets管理页面.png" />
 
 **Worker 版：**
