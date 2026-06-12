@@ -29,7 +29,7 @@ const SINGBOX_CONFIG_V11 = 'htt'+'ps://raw.git'+'hub'+'usercontent.com/sinspired
 const TG_BOT_TOKEN = ""; //在此telegram bot的token令牌
 const TG_CHAT_ID = ""; //在此修改添加你的telegram 用户id
 const ADMIN_IP = ""; //在此修改添加你的白名单IP
-const DLS = "5000"; // ADDCSV 专用：速度下限筛选阈值 (单位 KB/s)
+const DLS = "7"; // ADDCSV 专用：速度下限筛选阈值 (单位 MB/s)
 
 // =============================================================================
 // 🟢 超神奇
@@ -262,15 +262,29 @@ const parseVP = c => {
   return a ? { addrType: t, ...a, port: p } : null;
 };
 
+/* ---------- IPv6 格式化工具 ---------- */
+const stripIPv6Brackets = host => host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+const isIPv6Host = host => stripIPv6Brackets(host).includes(':');
+const formatHostForUrl = host => isIPv6Host(host) ? `[${stripIPv6Brackets(host)}]` : stripIPv6Brackets(host);
+
 /* ---------- 地址/端口解析（IPv6 兼容） ---------- */
 const parseAddressPort = (seg) => {
-  if (seg.startsWith('[')) {
-    const m = seg.match(/^\[(.+?)\]:(\d+)$/);
-    if (m) return [m[1], Number(m[2])];
-    return [seg.slice(1, -1), 443];
+  const raw = (seg || '').trim();
+  if (!raw) return ['', 443];
+  if (raw.startsWith('[')) {
+    const m = raw.match(/^\[([^\]]+)\](?::(\d+))?$/);
+    if (m) return [m[1], Number(m[2] || 443)];
+    return [stripIPv6Brackets(raw), 443];
   }
-  const [a, port = 443] = seg.split(':');
-  return [a, Number(port)];
+  const colonCount = (raw.match(/:/g) || []).length;
+  if (colonCount > 1) return [raw, 443];
+  const idx = raw.lastIndexOf(':');
+  if (idx > -1) {
+    const addr = raw.slice(0, idx);
+    const portText = raw.slice(idx + 1);
+    if (/^\d+$/.test(portText)) return [addr, Number(portText)];
+  }
+  return [raw, 443];
 };
 
 /* ---------- SOCKS5 / HTTP 凭证解析 ---------- */
@@ -1347,7 +1361,7 @@ function genNodes(host, uuid, proxyIP, customIPs, psName) {
 // ⭐ 功能4: 修改 getCustomIPs 支持 DLS 筛选
 async function getCustomIPs(env, dlsThreshold) {
     let allIPs = [];
-    const threshold = Number(dlsThreshold) || 5000; // 默认5000
+    const threshold = Number(dlsThreshold) || 7; // 默认7 MB/s
     const addText = await getSafeEnv(env, 'ADD', "");
     if (addText) { addText.split('\n').forEach(line => { const trimmed = line.trim(); if (trimmed && !trimmed.startsWith('#')) allIPs.push(trimmed); }); }
     const addApi = await getSafeEnv(env, 'ADDAPI', "");
@@ -1368,11 +1382,11 @@ async function getCustomIPs(env, dlsThreshold) {
                         const isNewFmt = c1 && (c1.includes(':') || c1.includes('.') || !/^[0-9]+$/.test(c1));
                         const csvIp = cols[0].trim();
                         const csvPort = isNewFmt ? ((cols.length >= 3) ? cols[2].trim() : '') : c1;
-                        const speedIdx = isNewFmt ? 3 : 7;
-                        const speedUnit = isNewFmt ? 1024 : 1;
-                        if (cols.length > speedIdx) {
-                            const speed = Number(cols[speedIdx]) * speedUnit;
-                            if (!isNaN(speed) && speed < threshold) return;
+                        const lastCol = cols[cols.length - 1].trim().toLowerCase();
+                        const speedRaw = parseFloat(lastCol);
+                        if (!isNaN(speedRaw)) {
+                            const speedMB = lastCol.includes('kb') ? speedRaw / 1024 : speedRaw;
+                            if (speedMB < threshold) return;
                         }
                         if (csvIp) allIPs.push(csvPort && csvPort !== '443' ? csvIp + ':' + csvPort : csvIp);
                     }); 
@@ -3376,7 +3390,7 @@ function dashPage(host, uuid, proxyip, subpass, subdomain, converter, env, clien
                     </div>
                     <!-- ⭐ 功能4: DLS 设置输入框 -->
                     <div class="input-block">
-                        <label>DLS (ADDCSV专用) - 速度下限筛选 (单位: KB/s)</label>
+                        <label>DLS (ADDCSV专用) - 速度下限筛选 (单位: MB/s)</label>
                         <input type="text" id="inpDls" placeholder="5000" value="${safeVal(dls)}">
                     </div>
                     <button class="btn btn-success" style="width:100%" onclick="saveNodeConfig()">💾 保存配置</button>
