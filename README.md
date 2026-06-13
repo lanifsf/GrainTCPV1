@@ -312,7 +312,7 @@ Workers 版通过 Cloudflare Dashboard 在线配置环境变量。
 |--------|------|--------|
 | `SUBAPI` | 订阅转换后端 API | `subapi.cmliussss.net` |
 | `PS` | 节点备注后缀（追加到节点名后） | 空 |
-| `DLS` | ADDCSV 速度下限筛选（KB/s） | `5000` |
+| `DLS` | ADDCSV 速度下限筛选（MB/s） | `7` |
 | `CONCUR` | GrainTCP 并发竞速数（1-16） | `4` |
 | `SUB_TOKEN` | Desire 裂变 Token（留空不启用） | 空 |
 | `KEY` | 动态 UUID 密钥（启用后自动生成时效性 UUID） | 空 |
